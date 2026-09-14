@@ -40,5 +40,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# SDD scratch workspace (not part of the project)
-.superpowers/
+# SDD workspace: the ledger/briefs/reports for the active plan are tracked
+# (via `git add -f`) for cross-machine continuity, so this project's own
+# .gitignore only excludes the regenerable review diffs, not the whole tree.
+# Note: the tool's own sdd-workspace script regenerates a self-ignoring
+# .superpowers/sdd/.gitignore on every run — that nested file takes
+# precedence over this one for anything under it, so tracked SDD files must
+# be staged with `git add -f`, not plain `git add`.
+.superpowers/sdd/*/review-*.diff

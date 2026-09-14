@@ -1,0 +1,35 @@
+# SDD ledger — plan: /home/sunfyre/Desktop/freelance_project/docs/superpowers/plans/2026-09-14-imaad-dashboard-phase1.md
+
+Spec: /home/sunfyre/Desktop/freelance_project/docs/superpowers/specs/2026-09-14-imaad-dashboard-design.md
+
+Ruling: No git worktree isolation used — no repo existed anywhere prior to this plan (freelance_project was never a git repo). Bootstrapped `imaad-dashboard/` as a fresh git repo (empty `git init`, no commits) so the plan's own Task 1 populates it. Nothing existing to protect, no shared branch at risk. — Costs nothing if wrong: a worktree could still be added later around this same repo.
+
+Ruling: `docs/` (spec + plan + this ledger's plan file) and the 3 original reference files live in the PARENT directory (`freelance_project/`), one level above the `imaad-dashboard/` repo root — outside git entirely, never gitignored-inside, per user's "don't commit any docs or the 3 files" instruction. — Costs nothing if wrong: trivial to move.
+
+Ruling: every implementer/reviewer dispatch in this run must be told explicitly: no co-author/attribution line on any commit. This overrides Claude Code's default session reminder, per direct user instruction at the start of this task. — Cost if a subagent adds one anyway: caught at task review (diff shows commit message), fix is a `git commit --amend` in that task's fix round.
+
+## Preflight conflict scan
+
+| Pair / Task | What A produces | What B consumes | Finding |
+|---|---|---|---|
+| Task 5 → Task 6 | `ApiClient`, `ApiError`, `apiClient` in `lib/api/client.ts` | Task 6 resource modules import `apiClient` | Consistent. Task 5 itself has a known circular-import risk (`client.ts` imports `mockClient` from `adapter.ts`; `adapter.ts` imports `ApiError` from `client.ts`) — the plan already names the exact fallback (split `ApiError` into `lib/api/errors.ts`) inline in Task 5 Step 5/7. No ruling needed, just flagging it's self-aware. |
+| Task 6 → Task 7 | `login`, `register` in `lib/api/auth.ts` returning `{accessToken, user}` | `AuthProvider` calls `authApi.login`/`authApi.register` | Consistent shape. |
+| Task 9 → Tasks 10-16 | `Button`, `Input`, `Select*`, `Dialog*`, `Tabs*`, `Table*`, `StatusBadge`/`getStatusBadgeVariant`, `useToast`, `EmptyState`, `Skeleton` | Every later task's components import these by the same names/props | Checked prop-by-prop against every later usage (variant/size/isLoading on Button, error/id on Input, status/label on StatusBadge, etc.) — all consistent. |
+| Task 5 → Task 6 (test) | — | `lib/api/hooks.test.ts` (Task 6 Step 2) contains JSX (`<QueryClientProvider>...`) | **Defect found:** file extension is `.ts`, not `.tsx` — JSX in a `.ts` file will not parse. **Ruling:** rename to `lib/api/hooks.test.tsx` (and `wrapper`/`localWrapper` helpers stay JSX). Carried into Task 6 dispatch. — Cost if wrong: none, purely a filename fix. |
+| Task 9 → Task 14 | `Input` applies `className` to the `<input>` element itself, not to its wrapping `<div>` | Task 14's `Composer` passes `className="flex-1"` to `<Input>` expecting the form-row layout to make it grow | **Defect found:** `flex-1` on the inner `<input>` does nothing because the actual flex item in the form's flex row is `Input`'s wrapper `<div className="flex flex-col gap-1">`, which has no sizing class — the composer's input will not grow to fill the row. **Ruling:** in Task 14's `Composer`, wrap `<Input>` in `<div className="flex-1">` instead of passing `className="flex-1"` to `Input`. Carried into Task 14 dispatch. — Cost if wrong: cosmetic only, caught immediately by Task 14's own visual verification step. |
+| Every task, self-consistency | — | — | Checked each task's own test code against its own implementation code (adapter route parsing indices, `prioritizeConversations` slice(0,5), `formatSenderLabel`/`formatStatusLabel`/`formatChannelLabel` map completeness, KB status map completeness) — all internally consistent. |
+
+Scan complete. Two defects found and ruled on above (both carried forward as dispatch corrections, not plan edits). Proceeding to Task 1.
+
+Task 1: minor (deferred): vitest@5 peer dep wants @types/node ^22||>=24, create-next-app installed ^20 — type-declarations-only mismatch, doesn't block dev/test.
+Task 1: complete (commits 4b825dc..0b197d2, review clean)
+
+Ruling: Task 2's brief text specified `@tailwind base/components/utilities;` (Tailwind v3 syntax) for `app/globals.css`, but Task 1's scaffold installed Tailwind v4 (`tailwindcss: ^4`, `@tailwindcss/postcss: ^4`), whose v4 default `globals.css` uses `@import "tailwindcss";` and does not auto-load a JS `tailwind.config.ts` — confirmed by reviewer via `next build`: compiled CSS contained zero `brand` utility classes. This is a plan defect (brief written against the wrong Tailwind major version), not an implementer error to fault. — Ruling: keep `@import "tailwindcss";` (Tailwind v4's own import), add `@config "../tailwind.config.ts";` directly beneath it so v4 loads the existing JS config unchanged — preserves `tailwind.config.ts` as the single source of truth and keeps `lib/design-tokens.test.ts` valid, smallest possible deviation from the brief's intent. Carried into Task 2 fix round 1. — Cost if wrong: would need to migrate brand tokens into a CSS `@theme` block instead; contained to this one task, no downstream task depends on tailwind.config.ts's internal mechanism, only on the class names it produces.
+Task 2: fix round 1/5 (1 addressed, 0 open; commits a26c7e5..d055557)
+Task 2: complete (commits 0b197d2..d055557, 1 fix round for plan-mandated Tailwind v3/v4 mismatch, re-review clean)
+Task 3: complete (commits d055557..664c614, review clean)
+Task 4: complete (commits 664c614..7813aa0, review clean)
+
+Ruling: Task 5's implementer skipped the brief's own documented fallback (split `ApiError` into `lib/api/errors.ts`) based on incomplete verification (only checked `ApiError`'s safety, never `apiClient`/`mockClient`'s eager-assignment ordering). Reviewer empirically reproduced a real bug: importing `./adapter` before `@/lib/api/client` leaves `apiClient` as `undefined` at module-eval time — this is exactly the failure mode the brief's fallback exists to prevent, and applying it (moving `ApiError` into a leaf `lib/api/errors.ts` module, imported by both `client.ts` and `adapter.ts`) removes the back-edge from `adapter.ts` to `client.ts` entirely, fixing both the `ApiError` and the `apiClient` ordering hazard. Not a plan-text conflict — the plan already prescribed this exact fix path; ruling only confirms applying it now rather than waiting for a downstream task to trip over it. — Cost if wrong: none, this is the plan's own pre-approved fallback.
+Task 5: fix round 1/5 (3 addressed, 0 open; commits 21874cd..cb588af)
+Task 5: complete (commits 7813aa0..cb588af, 1 fix round for circular import + timer leak + comment, re-review clean)
