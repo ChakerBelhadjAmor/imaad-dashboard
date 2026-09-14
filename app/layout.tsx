@@ -1,5 +1,6 @@
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={plexSans.variable}>
       <body className="bg-brand-neutral text-brand-black font-sans antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
