@@ -1,6 +1,8 @@
-# SDD ledger — plan: /home/sunfyre/Desktop/freelance_project/docs/superpowers/plans/2026-09-14-imaad-dashboard-phase1.md
+# SDD ledger — plan: docs/superpowers/plans/2026-09-14-imaad-dashboard-phase1.md (repo-relative)
 
-Spec: /home/sunfyre/Desktop/freelance_project/docs/superpowers/specs/2026-09-14-imaad-dashboard-design.md
+Spec: docs/superpowers/specs/2026-09-14-imaad-dashboard-design.md (repo-relative)
+
+Note: plan and spec were originally kept outside this repo (in the parent `freelance_project/` folder, alongside prompt.md/PROJECT_OVERVIEW.md/the brand image) per the user's initial "don't commit docs" instruction. User later asked to track the SDD workspace for cross-machine continuity (see ruling above, after Task 5) — as part of that, the plan+spec were copied into this repo at the paths above so a fresh clone is self-contained. The 3 original reference files (prompt.md, PROJECT_OVERVIEW.md, brand image) remain outside the repo; only the plan/spec/ledger/briefs/reports are tracked.
 
 Ruling: No git worktree isolation used — no repo existed anywhere prior to this plan (freelance_project was never a git repo). Bootstrapped `imaad-dashboard/` as a fresh git repo (empty `git init`, no commits) so the plan's own Task 1 populates it. Nothing existing to protect, no shared branch at risk. — Costs nothing if wrong: a worktree could still be added later around this same repo.
 
