@@ -1,5 +1,5 @@
 import type { ApiClient } from "@/lib/api/client";
-import { ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/errors";
 import type { KBDocument } from "@/lib/types/models";
 import {
   seedOrg, seedUser, seedAgentConfig, seedCustomers, seedConversations,
@@ -18,11 +18,18 @@ let store = {
   analyticsEvents: [...seedAnalyticsEvents],
 };
 
+// Mock-only credential for the demo login flow — not real auth, never used against a real backend.
 const KNOWN_PASSWORD = "demo1234";
 let idCounter = 100;
 const nextId = (prefix: string) => `${prefix}_${idCounter++}`;
 
+// Tracks pending KB-processing timers so tests can reset the mock store without
+// leaking a previous test's setTimeout callbacks into a later test's store/idCounter state.
+let pendingTimers: ReturnType<typeof setTimeout>[] = [];
+
 export function __resetMockStore() {
+  for (const timer of pendingTimers) clearTimeout(timer);
+  pendingTimers = [];
   store = {
     org: { ...seedOrg },
     user: { ...seedUser },
@@ -125,14 +132,18 @@ async function handlePost<T>(path: string, body: any): Promise<T> {
 }
 
 function simulateKbProcessing(id: string) {
-  setTimeout(() => {
-    const doc = store.kbDocuments.find((d) => d.id === id);
-    if (doc) doc.status = "processing";
-  }, 1000);
-  setTimeout(() => {
-    const doc = store.kbDocuments.find((d) => d.id === id);
-    if (doc) doc.status = "ready";
-  }, 4000);
+  pendingTimers.push(
+    setTimeout(() => {
+      const doc = store.kbDocuments.find((d) => d.id === id);
+      if (doc) doc.status = "processing";
+    }, 1000)
+  );
+  pendingTimers.push(
+    setTimeout(() => {
+      const doc = store.kbDocuments.find((d) => d.id === id);
+      if (doc) doc.status = "ready";
+    }, 4000)
+  );
 }
 
 async function handlePatch<T>(path: string, body: any): Promise<T> {

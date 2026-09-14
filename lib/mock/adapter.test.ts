@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mockClient, __resetMockStore } from "./adapter";
-import { ApiError } from "@/lib/api/client";
+// Import order matters here: "./adapter" is imported above BEFORE "@/lib/api/client" below.
+// This is the exact ordering that previously triggered a circular-import bug where
+// `apiClient` in lib/api/client.ts resolved to `undefined` (see the regression test below).
+import { ApiError, apiClient } from "@/lib/api/client";
 
 describe("mockClient", () => {
   beforeEach(() => {
@@ -56,5 +59,16 @@ describe("mockClient", () => {
     );
     expect(result.accessToken).toBeTruthy();
     expect(result.user.email).toBe("sara@riyadhhome.example");
+  });
+
+  // Regression test for a circular-import bug: when "./adapter" is imported before
+  // "@/lib/api/client" (the exact order used at the top of this file), the old
+  // client.ts/adapter.ts structure caused `apiClient` to permanently capture
+  // `undefined` because client.ts's `export const apiClient = mockClient;`
+  // executed while adapter.ts's `mockClient` export had not been assigned yet.
+  it("apiClient resolves to a working client even when adapter is imported first", async () => {
+    expect(typeof apiClient.get).toBe("function");
+    const org = await apiClient.get<{ id: string }>("/api/organization");
+    expect(org.id).toBe("org_1");
   });
 });
